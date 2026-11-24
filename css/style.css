@@ -101,3 +101,17 @@ nav select{width:100%;font:inherit;font-size:14px;padding:6px;border-radius:6px;
 .qimg{max-width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;margin:8px 0}
 .qdone{background:var(--green2);border-radius:8px;padding:10px 14px;width:100%}
 .check .ck{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--teal);font-weight:700;margin-bottom:4px}
+/* Handwritten steps and tutor captions */
+.step .txt{position:relative}
+.ink.hw{font-family:"Kalam","Segoe Print","Comic Sans MS",cursive;font-size:1.12em;color:#1c3a8c;line-height:1.55}
+.ink{display:inline-block;max-width:100%}
+.writing .ink{animation:write var(--d) linear both}
+@keyframes write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.pen{display:none}
+.writing .pen{display:block;position:absolute;top:2px;left:0;width:9px;height:22px;border-radius:2px 2px 5px 5px;background:linear-gradient(#e8a33a 0 70%,#333 70%);transform:rotate(25deg);animation:pen var(--d) linear both;pointer-events:none}
+@keyframes pen{from{left:0}to{left:calc(100% - 9px)}}
+.tutor{margin-top:6px;font-size:14px;color:#55606f;font-style:italic}
+.tutor span{font-style:normal;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--teal);margin-right:4px}
+.writing .tutor{opacity:0}
+.tutor{transition:opacity .4s}
+@media (prefers-reduced-motion: reduce){.writing .ink,.writing .pen{animation:none}}

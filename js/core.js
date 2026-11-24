@@ -38,10 +38,20 @@ function speakable(html){
   d.querySelectorAll("sup").forEach(e=>{const t=e.textContent.trim();e.replaceWith(t==="2"?" squared ":t==="3"?" cubed ":" to the power "+t+" ");});
   d.querySelectorAll(".mks").forEach(e=>e.replaceWith(" for "+e.textContent.replace(/[()]/g,"")+" marks. "));
   let t=d.textContent;
-  const map=[[/WMA11\/01 · /g,""],[/ · Q(\d+) · /g," question $1, "],[/marksOpen/g,"marks. Open"],[/√/g," root "],[/∛/g," cube root of "],[/²/g," squared "],[/³/g," cubed "],[/⁴/g," to the fourth "],[/⁵/g," to the fifth "],[/−/g," minus "],[/×/g," times "],[/÷/g," divided by "],[/≥/g," greater than or equal to "],[/≤/g," less than or equal to "],[/>/g," greater than "],[/</g," less than "],[/≠/g," not equal to "],[/⇒/g,", so "],[/→/g," becomes "],[/θ/g," theta "],[/½/g," a half "],[/¼/g," a quarter "],[/¾/g," three quarters "],[/°/g," degrees "],[/±/g," plus or minus "],[/\+/g," plus "],[/=/g," equals "],[/∫/g," integral of "],[/″/g," double dash "],[/′/g," dash "],[/₁/g," 1 "],[/₂/g," 2 "],[/₃/g," 3 "],[/π/g," pi "],[/\(a\)/g,"part a."],[/\(b\)/g,"part b."],[/\(c\)/g,"part c."],[/\(d\)/g,"part d."],[/\bf\(/g,"f of ("],[/\s+/g," "]];
+  const map=[[/\bddM1\b/g," double d M 1 "],[/\bdM1\b/g," d M 1 "],[/\b([MAB]1)\*/g,"$1 star"],[/\b([MAB]1)ft\b/g,"$1 follow through"],[/WMA11\/01 · /g,""],[/ · Q(\d+) · /g," question $1, "],[/marksOpen/g,"marks. Open"],[/√/g," root "],[/∛/g," cube root of "],[/²/g," squared "],[/³/g," cubed "],[/⁴/g," to the fourth "],[/⁵/g," to the fifth "],[/−/g," minus "],[/×/g," times "],[/÷/g," divided by "],[/≥/g," greater than or equal to "],[/≤/g," less than or equal to "],[/>/g," greater than "],[/</g," less than "],[/≠/g," not equal to "],[/⇒/g,", so "],[/→/g," becomes "],[/θ/g," theta "],[/½/g," a half "],[/¼/g," a quarter "],[/¾/g," three quarters "],[/°/g," degrees "],[/±/g," plus or minus "],[/\+/g," plus "],[/=/g," equals "],[/∫/g," integral of "],[/″/g," double dash "],[/′/g," dash "],[/₁/g," 1 "],[/₂/g," 2 "],[/₃/g," 3 "],[/π/g," pi "],[/\(a\)/g,"part a."],[/\(b\)/g,"part b."],[/\(c\)/g,"part c."],[/\(d\)/g,"part d."],[/\bf\(/g,"f of ("],[/\s+/g," "]];
   for(const [a,b] of map)t=t.replace(a,b);
   return t.trim();
 }
-function say(html){const on=document.getElementById("voiceOn");if(!synth||!on||!on.checked)return;synth.cancel();const u=new SpeechSynthesisUtterance(speakable(html));u.rate=+document.getElementById("rate").value;if(voice)u.voice=voice;u.lang=voice?voice.lang:"en-GB";synth.speak(u);}
+/* say(html) speaks and resolves true when finished (false if voice is off). Sentences are queued
+   separately because some browsers cut off long utterances. */
+function voiceOn(){const on=document.getElementById("voiceOn");return !!(synth&&on&&on.checked);}
+function say(html){return new Promise(res=>{
+  if(!voiceOn()){res(false);return;}
+  synth.cancel();const txt=speakable(html);const parts=txt.split(/(?<=[.?!:])\s+/).filter(x=>x.trim());
+  if(!parts.length){res(true);return;}
+  const rate=+document.getElementById("rate").value;let done=false;const fin=()=>{if(!done){done=true;res(true);}};
+  parts.forEach((t,k)=>{const u=new SpeechSynthesisUtterance(t);u.rate=rate;if(voice)u.voice=voice;u.lang=voice?voice.lang:"en-GB";
+    if(k===parts.length-1){u.onend=fin;u.onerror=fin;}synth.speak(u);});
+  setTimeout(fin,txt.length*110/rate+4000);});}
 /* Reuse a walkthrough from the guide selection, e.g. G("Jan 2025 · Q1"). */
 function G(src){const g=WT.get("guide");const q=g&&g.qs.find(x=>x.src===src);if(!q)throw new Error("guide question missing: "+src);return {marks:q.marks,topic:q.topic,hints:q.hints,steps:q.steps};}

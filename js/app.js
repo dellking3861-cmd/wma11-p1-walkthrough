@@ -62,7 +62,7 @@ function renderNav(){
   $n.querySelectorAll("button[data-set]").forEach(b=>b.onclick=()=>go("q",b.dataset.set,0));
 }
 const setDone=s=>s.qs.filter((q,i)=>(S.prog[s.id]||{})[i]&&S.prog[s.id][i].finished).length;
-function render(){synth&&synth.cancel();renderNav();if(S.view==="q"&&setById(S.set))renderQ();else if(S.view==="report")renderReport();else renderHome();window.scrollTo(0,0);}
+function render(){RUN++;synth&&synth.cancel();renderNav();if(S.view==="q"&&setById(S.set))renderQ();else if(S.view==="report")renderReport();else renderHome();window.scrollTo(0,0);}
 
 /* ---------- home ---------- */
 function renderHome(){
@@ -108,19 +108,79 @@ function renderQ(){
   on("prevq",()=>go("q",S.set,i-1));on("skipq",()=>go("q",S.set,i+1));
   if(!q.stub&&st.phase!=="attempt")drawSteps(false);
 }
+/* ---------- tutor narration ---------- */
+let RUN=0;                       // bumped whenever playback should stop or restart
+if(S.auto===undefined)S.auto=true;
+const GLOSS={M:"a method mark: the examiner wants to see the right method, even if a number slips",
+  A:"an accuracy mark: the result must be exactly right, and it needs the method mark before it",
+  B:"an independent mark for a correct value or statement",
+  dM:"a dependent method mark: it only counts if the method mark before it was earned",
+  star:"The star means the answer was printed in the question, so every line of working must be shown",
+  ft:"Follow through means you can still earn it using your own earlier answer"};
+// const codeWords=c=>c.replace(/^dd?M/,m=>(m.length>2?"dependent ":"dependent ")+"M").replace(/ft$/," follow-through").replace(/\*$/," star");
+function codeKinds(m){const out=[];for(const c of (m||"").split(/\s+/).filter(Boolean)){
+  if(/^d/.test(c))out.push("dM");else out.push(c[0]);if(/\*$/.test(c))out.push("star");if(/ft$/.test(c))out.push("ft");}return out;}
+const plain=h=>{const d=document.createElement("div");d.innerHTML=h;return d.textContent;};
+/* Words the tutor adds around step idx. Returns {lead, tail}: lead is spoken before the maths, tail after.
+   Deterministic, so the caption on screen matches what is spoken. */
+function tutorWhy(q,idx){const set=setById(S.set);const qi=set.qs.indexOf(q);
+  const k=q.steps.slice(0,idx).filter(x=>x.t).length,T=window.TUTOR||{};
+  let lines=T[set.id]&&T[set.id][qi];
+  if(!lines&&q.paper&&T[q.paper]){const ps=setById(q.paper),pi=ps?ps.qs.findIndex(x=>x.n===(q.pn||q.n)):-1;
+    const cand=pi>=0&&T[q.paper][pi];if(cand&&cand.length===q.steps.filter(x=>x.t).length)lines=cand;}  // guide reuses paper lines
+  return (lines&&lines[k])||"";}
+function tutorWords(q,idx){
+  const s=q.steps[idx];const content=q.steps.map((x,k)=>k).filter(k=>q.steps[k].t);
+  const first=content[0]===idx,last=content[content.length-1]===idx;
+  let lead="",tail="";
+  const prev=q.steps[idx-1];const graph=prev&&prev.plot?" Look at the graph as we go.":"";
+  if(s.c)return {lead:"Quick check before we go on."+graph,tail:"Pick the answer you think is right."};
+  if(s.tip)return {lead:"Here's a tip.",tail:""};
+  if(s.er)return {lead:"Pay attention to this one.",tail:""};
+  if(!s.t)return {lead:"",tail:""};
+  const txt=plain(s.t).trim();const pm=txt.match(/^\((?:[a-d]|i{1,3}|iv)\)(?:\((?:i{1,3}|iv)\))?/);
+  if(first)lead=`Let's work through it. This question is on ${(q.topic||"this topic").toLowerCase()}.`;
+  else if(pm)lead=`Now part ${pm[0].replace(/[()]/g," ").trim().replace(/\s+/g," ")}.`;
+  else if(tutorWhy(q,idx))lead="";                 // the tutor line already leads in
+  else if(last)lead="Finally,";
+  else lead=["Next,","Now,","Then,","From here,"][idx%4];
+  lead+=graph;
+  if(/<b>/.test(s.t))tail+=last?" And that's the final answer. ":" That's the answer for this part. ";
+  if(s.m){const seen=new Set();for(let k=0;k<idx;k++)for(const c of codeKinds(q.steps[k].m))seen.add(c);
+    let g="";for(const c of codeKinds(s.m)){if(seen.has(c))continue;seen.add(c);
+      g+=c==="star"||c==="ft"?` ${GLOSS[c]}.`:` ${c==="dM"?"dM1":c+"1"} is ${GLOSS[c]}.`;}
+    if(g)tail+=` This line earns ${s.m.split(/\s+/).filter(Boolean).join(", ")}.`+g;}
+  return {lead:lead.trim(),why:tutorWhy(q,idx),tail:tail.trim()};
+}
+function narration(q,idx){const s=q.steps[idx];const w=tutorWords(q,idx);
+  const body=s.c?s.c.q:(s.t||s.tip||s.er||"");const main=body.replace(/^\s*\((?:[a-d]|i{1,3}|iv)\)(?:\((?:i{1,3}|iv)\))?\s*/,"");
+  const end=/[.:?!]\s*$/.test(plain(main))?" ":". ";
+  return `${w.lead} ${w.why?w.why+" ":""}${main}${end}${w.tail}`;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* Handwriting reveal: wipe the step's text left to right with a moving pen. */
+function writeIn(el){
+  const ink=el&&el.querySelector(".ink");el&&el.classList.add("new");
+  if(!ink||matchMedia("(prefers-reduced-motion: reduce)").matches)return sleep(300);
+  const n=ink.textContent.length,ms=Math.max(700,Math.min(4000,n*45));
+  el.style.setProperty("--d",ms+"ms");el.classList.add("writing");
+  return sleep(ms+80).then(()=>el.classList.remove("writing"));
+}
+function readTime(html){return 1500+plain(html).length*55;}
 function stepHTML(s,idx,i){
   const set=setById(S.set);
   if(s.svg)return `<div>${sketch(s.svg)}</div>`;
   if(s.plot)return `<div>${plot(s.plot,"p"+i+"_"+idx)}</div>`;
-  if(s.tip)return `<div class="step tip"><span class="code">TIP</span><div class="txt">${s.tip}</div></div>`;
-  if(s.er)return `<div class="step tip"><span class="code">EXAMINER</span><div class="txt">${s.er}</div></div>`;
+  const q=set.qs[i],cap=w=>w?`<div class="tutor"><span>Tutor</span> ${w}</div>`:"";
+  if(s.tip)return `<div class="step tip"><span class="code">TIP</span><div class="txt"><span class="ink">${s.tip}</span><i class="pen"></i></div></div>`;
+  if(s.er)return `<div class="step tip"><span class="code">EXAMINER</span><div class="txt"><span class="ink">${s.er}</span><i class="pen"></i></div></div>`;
   if(s.c){const ch=qst(set.id,i).checks[idx]||{tried:[]};
     let h=`<div class="check" data-idx="${idx}"><div class="ck">Concept: ${s.c.k}</div><div class="cq">${s.c.q}</div>`;
     s.c.o.forEach((o,k)=>{const t=ch.tried.includes(k);h+=`<button class="opt ${t?(o[1]?"ok":"no"):""}" data-k="${k}">${o[0]}</button>`;});
     const lastK=ch.tried[ch.tried.length-1];
     if(lastK!==undefined){const o=s.c.o[lastK];h+=`<div class="fb ${o[1]?"ok":"no"}">${o[1]?"&#10003; ":"&#10007; "}${o[2]}${o[1]?"":" Try again."}</div>`;}
     return h+`</div>`;}
-  return `<div class="step"><div class="txt">${s.t}</div>${s.m?`<span class="code">${s.m}</span>`:""}</div>`;
+  const w=tutorWords(q,idx);
+  return `<div class="step"><div class="txt"><span class="ink hw">${s.t}</span><i class="pen"></i>${cap([w.why,w.tail].filter(Boolean).join(" "))}</div>${s.m?`<span class="code">${s.m}</span>`:""}</div>`;
 }
 const stepText=s=>s?(s.t||s.tip||s.er||(s.c&&s.c.q)||""):"";
 function drawSteps(speakLast){
@@ -129,20 +189,27 @@ function drawSteps(speakLast){
   box.querySelectorAll(".check").forEach(c=>{const idx=+c.dataset.idx;c.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
     if(solved(set.id,i,idx))return;const ch=st.checks[idx]||(st.checks[idx]={tried:[]});const k=+b.dataset.k;
     if(!ch.tried.includes(k))ch.tried.push(k);else{ch.tried.splice(ch.tried.indexOf(k),1);ch.tried.push(k);}
-    save();drawSteps(false);const o=q.steps[idx].c.o[k];say((o[1]?"Correct. ":"Not quite. ")+o[2]);});});
+    save();drawSteps(false);const o=q.steps[idx].c.o[k];const run=++RUN;
+    say((o[1]?"Correct. ":"Not quite. ")+o[2]+(o[1]?"":" Try another answer.")).then(v=>v?sleep(500):sleep(readTime(o[2])/2)).then(()=>{
+      if(run===RUN&&S.auto&&o[1]&&st.step===idx+1&&st.step<q.steps.length)advance(true);});});});
   const blocked=st.step>0&&q.steps[st.step-1].c&&!solved(set.id,i,st.step-1);
   const btns=document.getElementById("stepBtns");
-  if(st.step<q.steps.length)btns.innerHTML=`<button class="b pri" id="next" ${blocked?"disabled":""}>${blocked?"Answer the concept check to continue":"Next step"}</button><button class="b" id="again">Repeat aloud</button>`;
+  if(st.step<q.steps.length)btns.innerHTML=`<button class="b pri" id="next" ${blocked?"disabled":""}>${blocked?"Answer the concept check to continue":"Next step"}</button><button class="b" id="auto">${S.auto?"Pause auto-play":"Auto-play"}</button><button class="b" id="again">Repeat aloud</button>`;
   else if(blocked)btns.innerHTML=`<span class="note">Answer the concept check to finish this question.</span>`;
   else{if(!st.finished){st.finished=true;save();renderNav();}const [a,b]=qScore(set.id,i);
     btns.innerHTML=`<div class="qdone"><b>Question complete.</b> Concept checks right first time: ${a} of ${b}.</div>
     <button class="b navy" id="nextq">${i<set.qs.length-1?"Next question":"See my concept report"}</button><button class="b" id="again">Repeat aloud</button>`;}
   const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn;};
   on("next",()=>advance(true));
-  on("again",()=>say(stepText(q.steps[st.step-1])));
+  on("again",()=>{RUN++;say(narration(q,st.step-1));});
+  on("auto",()=>{S.auto=!S.auto;save();RUN++;if(synth)synth.cancel();drawSteps(false);if(S.auto&&!blocked)advance(true);});
   on("nextq",()=>{if(i<set.qs.length-1)go("q",S.set,i+1);else go("report");});
-  if(speakLast&&st.step>0){say(stepText(q.steps[st.step-1]));
-    const el=box.lastElementChild;if(el){el.classList.add("new");el.scrollIntoView({behavior:"smooth",block:"center"});}}
+  if(speakLast&&st.step>0){const idx=st.step-1,run=++RUN,el=box.lastElementChild;
+    if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+    const text=narration(q,idx);
+    Promise.all([writeIn(el),say(text).then(v=>v||sleep(readTime(text)))]).then(()=>{
+      if(run!==RUN||!S.auto||q.steps[idx].c||st.step>=q.steps.length)return;
+      return sleep(600).then(()=>{if(run===RUN)advance(true);});});}
 }
 function advance(sp){const set=setById(S.set),st=qst(set.id,S.cur),q=set.qs[S.cur];if(st.step<q.steps.length)st.step++;
   while(st.step<q.steps.length&&(q.steps[st.step-1].svg||q.steps[st.step-1].plot))st.step++;save();drawSteps(sp);}
@@ -174,5 +241,5 @@ function renderReport(){
   document.getElementById("cp").onclick=()=>{const ok=()=>document.getElementById("cpm").textContent="Copied.";if(navigator.clipboard)navigator.clipboard.writeText(summary).then(ok,()=>{document.getElementById("cpm").textContent=summary;});else document.getElementById("cpm").textContent=summary;};
   document.getElementById("rs").onclick=()=>{const b=document.getElementById("rs");if(b.dataset.sure){S.prog={};save();render();}else{b.dataset.sure=1;b.textContent="Click again to erase all progress";}};
 }
-document.getElementById("stopBtn").onclick=()=>synth&&synth.cancel();
+document.getElementById("stopBtn").onclick=()=>{RUN++;synth&&synth.cancel();if(S.auto){S.auto=false;save();const b=document.getElementById("auto");if(b)b.textContent="Auto-play";}};
 render();
