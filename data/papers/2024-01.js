@@ -63,7 +63,7 @@ Object.assign({n:4},G("Jan 2024 · Q4")),
  {t:`<i>x</i>(<i>x</i> + 8)(<i>x</i> &minus; 3) = 0`,m:"dM1"},
  {t:`P has negative <i>x</i>: <i>x</i> = &minus;8, <i>y</i> = &minus;8(64 &minus; 4) = &minus;480. <b>P(&minus;8, &minus;480)</b>`,m:"A1 A1"}]},
 {n:10,marks:8,topic:"Second derivatives and integration",
- hints:[`4${R("<i>x</i>³")} = 4<i>x</i><sup>3/2</sup>. Differentiate f&prime; to get f&Prime;, and set f&Prime;(2) = 0.`,`Integrate f&prime;(<i>x</i>) with your <i>k</i>, then use P(2, 8${R("2")}). ${R("2")}⁵... careful: 2<sup>5/2</sup> = 4${R("2")}.`],
+ hints:[`4${R("<i>x</i>³")} = 4<i>x</i><sup>3/2</sup>. Differentiate f&prime; to get f&Prime;, and set f&Prime;(2) = 0.`,`Integrate f&prime;(<i>x</i>) with your <i>k</i>, then use P(2, 8${R("2")}). Note 2<sup>5/2</sup> = 4${R("2")}.`],
  steps:[
  {t:`f&prime;(<i>x</i>) = 4<i>x</i><sup>3/2</sup> + <i>kx</i><sup>&minus;2</sup> &rArr; f&Prime;(<i>x</i>) = 6<i>x</i><sup>½</sup> &minus; 2<i>kx</i><sup>&minus;3</sup>`,m:"M1 A1"},
  C("Second derivative",`f&Prime;(<i>x</i>) is found by:`,[[`differentiating f&prime;(<i>x</i>)`,1,`Yes. The report saw students mislabel f&Prime; and f.`],[`integrating f&prime;(<i>x</i>)`,0,`Integrating f&prime; gives f, not f&Prime;.`]]),
