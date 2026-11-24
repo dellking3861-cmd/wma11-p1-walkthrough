@@ -68,7 +68,7 @@ function render(){synth&&synth.cancel();renderNav();if(S.view==="q"&&setById(S.s
 function renderHome(){
   const nq=SETS.filter(s=>s.kind==="paper").reduce((a,s)=>a+s.qs.length,0);
   let h=`<div class="card"><h1>WMA11 Pure Mathematics 1: Past-Paper Walkthroughs</h1>
-  <p>Every WMA11 past paper from January 2020 to October 2025 (${nq} questions). Each question is shown here, then walked through step by step, read aloud, with <b>concept checks</b> that explain any misunderstanding. No timer.</p>
+  <p>Every WMA11 past paper from January 2020 to June 2026 (${nq} questions). Each question is shown here, then walked through step by step, read aloud, with <b>concept checks</b> that explain any misunderstanding. No timer.</p>
   <ol><li>Read the question and try it on paper. Take a hint if you need one.</li><li>Walk through the solution. Each step shows the mark it earns in the official mark scheme.</li><li>Answer the concept checks: you can't move on until each is right, and your first try is what counts in the concept report.</li></ol>`;
   if(!PASS)h+=`<h3>Passcode</h3><p>Enter the passcode your tutor gave you to unlock the questions.</p><input type="text" id="pc" placeholder="Passcode" autocomplete="off"> <button class="b pri" id="pcgo">Unlock</button><p class="note" id="pcmsg"></p>`;
   else h+=`<p class="note">Questions unlocked on this browser. <button class="back" id="pcforget">Forget passcode</button></p>`;

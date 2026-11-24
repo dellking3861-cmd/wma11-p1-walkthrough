@@ -1,5 +1,6 @@
 /* The 20 WMA11 papers. Question images live encrypted in data/q/<id>.json. */
 const PAPERS=[
+ ["2026-06","June 2026",10],["2026-01","January 2026",9],
  ["2025-10","October 2025",10],["2025-06","June 2025",10],["2025-01","January 2025",9],
  ["2024-10","October 2024",9],["2024-06","June 2024",11],["2024-01","January 2024",10],
  ["2023-10","October 2023",11],["2023-06","June 2023",10],["2023-01","January 2023",11],
