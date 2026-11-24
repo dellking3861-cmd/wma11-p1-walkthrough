@@ -43,3 +43,5 @@ function speakable(html){
   return t.trim();
 }
 function say(html){const on=document.getElementById("voiceOn");if(!synth||!on||!on.checked)return;synth.cancel();const u=new SpeechSynthesisUtterance(speakable(html));u.rate=+document.getElementById("rate").value;if(voice)u.voice=voice;u.lang=voice?voice.lang:"en-GB";synth.speak(u);}
+/* Reuse a walkthrough from the guide selection, e.g. G("Jan 2025 · Q1"). */
+function G(src){const g=WT.get("guide");const q=g&&g.qs.find(x=>x.src===src);if(!q)throw new Error("guide question missing: "+src);return {marks:q.marks,topic:q.topic,hints:q.hints,steps:q.steps};}
