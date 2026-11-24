@@ -10,7 +10,7 @@ const WT={sets:[],add(s){this.sets.push(s);},get(id){return this.sets.find(s=>s.
 
 /* Generic plot: {fns:[f or {f,dash,color}], x:[a,b], y:[a,b], pts:[[x,y,label,dx,dy]], h:[[y,label]], v:[[x,label]], xt:[[x,label]], label} */
 function plot(sp,id){
-  const W=sp.w||400,H=sp.h||250,[x0,x1]=sp.x,[y0,y1]=sp.y;
+  const W=sp.w||400,H=typeof sp.h==="number"?sp.h:250,[x0,x1]=sp.x,[y0,y1]=sp.y;
   const X=x=>(x-x0)/(x1-x0)*W, Y=y=>H-(y-y0)/(y1-y0)*H;
   let body="";
   for(const fn of sp.fns||[]){const f=typeof fn==="function"?fn:fn.f;const col=(fn.color)||"#0f8b8d";let d="",pen=false;
